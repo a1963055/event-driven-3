@@ -1,6 +1,8 @@
 import nz.sodium.*;
 import javax.swing.*;
 import java.awt.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 class SimplifiedGps {
     String name;
@@ -59,7 +61,28 @@ public class GpsGUI {
             });
         }
         
+        JLabel eventDisplay = new JLabel("");
+        eventDisplay.setBorder(BorderFactory.createTitledBorder("Event Display"));
+        Timer clearTimer = new Timer();
+        
+        for(int i = 0; i < streams.length; i++) {
+            streams[i].listen(ev -> {
+                SwingUtilities.invokeLater(() -> {
+                    String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude;
+                    eventDisplay.setText(display);
+                    clearTimer.cancel();
+                    clearTimer = new Timer();
+                    clearTimer.schedule(new TimerTask() {
+                        public void run() {
+                            SwingUtilities.invokeLater(() -> eventDisplay.setText(""));
+                        }
+                    }, 3000);
+                });
+            });
+        }
+        
         mainPanel.add(trackerPanel);
+        mainPanel.add(eventDisplay);
         frame.add(mainPanel, BorderLayout.CENTER);
         frame.setVisible(true);
     }
