@@ -159,7 +159,11 @@ public class GpsGUI {
         Cell<Integer>[] distances = new Cell[10];
         for(int i = 0; i < 10; i++) {
             Stream<TimedEvent> timedStream = streams[i].map(ev -> new TimedEvent(ev, System.currentTimeMillis()));
-            distances[i] = timedStream.accum(new ArrayList<TimedEvent>(), (evList, te) -> {
+            distances[i] = timedStream.snapshot(latCell, lonCell, (te, lat, lon) -> {
+                double latDiff = Math.abs(te.event.latitude - lat);
+                double lonDiff = Math.abs(te.event.longitude - lon);
+                return (latDiff < 0.1 && lonDiff < 0.1) ? te : null;
+            }).filter(te -> te != null).accum(new ArrayList<TimedEvent>(), (evList, te) -> {
                 List<TimedEvent> newList = new ArrayList<>(evList);
                 newList.add(te);
                 long cutoff = System.currentTimeMillis() - 300000;
