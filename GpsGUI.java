@@ -147,10 +147,14 @@ public class GpsGUI {
             } catch (Exception ex) {}
         });
         
-        Stream<GpsEvent> filtered = combined.snapshot(latCell, lonCell, rangeCell, (ev, lat, lon, range) -> {
-            double latDiff = Math.abs(ev.latitude - lat);
-            double lonDiff = Math.abs(ev.longitude - lon);
-            return (latDiff < range && lonDiff < range) ? ev : null;
+        Stream<GpsEvent> filtered = combined.snapshot(latCell, lonCell, rangeCell, (ev, latVal, lonVal, rangeVal) -> {
+            double latDiff = Math.abs(ev.latitude - latVal);
+            double lonDiff = Math.abs(ev.longitude - lonVal);
+            boolean inRange = (latDiff < rangeVal && lonDiff < rangeVal);
+            if (!inRange) {
+                return null;
+            }
+            return ev;
         }).filter(ev -> ev != null);
         
         controlPanel.add(new JLabel("Latitude:"));
@@ -171,34 +175,55 @@ public class GpsGUI {
         filteredDisplay.setFont(new Font(filteredDisplay.getFont().getName(), Font.BOLD, 12));
         filteredDisplay.setForeground(Color.BLUE);
         
-        final int[] eventCount = {0};
+        final Timer[] clearFilterTimer = new Timer[]{new Timer()};
         filtered.listen(ev -> {
             SwingUtilities.invokeLater(() -> {
-                eventCount[0]++;
-                String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude + " (Count: " + eventCount[0] + ")";
+                String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude;
                 filteredDisplay.setText(display);
                 filteredDisplay.setForeground(Color.GREEN);
+                clearFilterTimer[0].cancel();
+                clearFilterTimer[0] = new Timer();
+                clearFilterTimer[0].schedule(new TimerTask() {
+                    public void run() {
+                        SwingUtilities.invokeLater(() -> {
+                            filteredDisplay.setText("No events in range");
+                            filteredDisplay.setForeground(Color.BLUE);
+                        });
+                    }
+                }, 5000);
             });
         });
         
         Cell<Integer>[] distances = new Cell[10];
         for(int i = 0; i < 10; i++) {
             Stream<TimedEvent> timedStream = streams[i].map(ev -> new TimedEvent(ev, System.currentTimeMillis()));
-            distances[i] = timedStream.snapshot(latCell, lonCell, rangeCell, (te, lat, lon, range) -> {
-                double latDiff = Math.abs(te.event.latitude - lat);
-                double lonDiff = Math.abs(te.event.longitude - lon);
-                return (latDiff < range && lonDiff < range) ? te : null;
+            Cell<Double> latC = latCell;
+            Cell<Double> lonC = lonCell;
+            Cell<Double> rangeC = rangeCell;
+            distances[i] = timedStream.snapshot(latCell, lonCell, rangeCell, (te, latVal, lonVal, rangeVal) -> {
+                double latDiff = Math.abs(te.event.latitude - latVal);
+                double lonDiff = Math.abs(te.event.longitude - lonVal);
+                return (latDiff < rangeVal && lonDiff < rangeVal) ? te : null;
             }).filter(te -> te != null).accum(new ArrayList<TimedEvent>(), (te, evList) -> {
                 ArrayList<TimedEvent> newList = new ArrayList<TimedEvent>(evList);
                 newList.add(te);
                 long cutoff = System.currentTimeMillis() - 300000;
                 newList.removeIf(t -> t.timestamp < cutoff);
                 return newList;
-            }).map(evList -> {
+            }).lift(latC, lonC, rangeC, (evList, latVal, lonVal, rangeVal) -> {
                 if(evList.size() < 2) return 0;
+                ArrayList<TimedEvent> inRange = new ArrayList<TimedEvent>();
+                for(TimedEvent te : evList) {
+                    double latDiff = Math.abs(te.event.latitude - latVal);
+                    double lonDiff = Math.abs(te.event.longitude - lonVal);
+                    if(latDiff < rangeVal && lonDiff < rangeVal) {
+                        inRange.add(te);
+                    }
+                }
+                if(inRange.size() < 2) return 0;
                 double total = 0.0;
-                for(int j = 1; j < evList.size(); j++) {
-                    total += distance3D(evList.get(j-1).event, evList.get(j).event);
+                for(int j = 1; j < inRange.size(); j++) {
+                    total += distance3D(inRange.get(j-1).event, inRange.get(j).event);
                 }
                 return (int)Math.ceil(total);
             });
