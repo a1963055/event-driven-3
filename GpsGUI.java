@@ -32,6 +32,34 @@ public class GpsGUI {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         
+        JPanel trackerPanel = new JPanel(new GridLayout(10, 4, 5, 5));
+        trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracker Displays"));
+        
+        JLabel[] trackerLabels = new JLabel[10];
+        JLabel[] latLabels = new JLabel[10];
+        JLabel[] lonLabels = new JLabel[10];
+        
+        for(int i = 0; i < 10; i++) {
+            trackerLabels[i] = new JLabel("Tracker" + i);
+            latLabels[i] = new JLabel("0.0");
+            lonLabels[i] = new JLabel("0.0");
+            
+            trackerPanel.add(trackerLabels[i]);
+            trackerPanel.add(latLabels[i]);
+            trackerPanel.add(lonLabels[i]);
+            trackerPanel.add(new JLabel(""));
+            
+            final int idx = i;
+            simplified[i].listen(sg -> {
+                SwingUtilities.invokeLater(() -> {
+                    trackerLabels[idx].setText(sg.name);
+                    latLabels[idx].setText(String.format("%.8f", sg.latitude));
+                    lonLabels[idx].setText(String.format("%.8f", sg.longitude));
+                });
+            });
+        }
+        
+        mainPanel.add(trackerPanel);
         frame.add(mainPanel, BorderLayout.CENTER);
         frame.setVisible(true);
     }
