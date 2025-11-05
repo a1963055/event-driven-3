@@ -17,6 +17,17 @@ class SimplifiedGps {
 }
 
 public class GpsGUI {
+    static double feetToMeters(double feet) {
+        return feet * 0.3048;
+    }
+    
+    static double distance3D(GpsEvent a, GpsEvent b) {
+        double latDiff = (b.latitude - a.latitude) * 111000.0;
+        double lonDiff = (b.longitude - a.longitude) * 111000.0 * Math.cos(Math.toRadians(a.latitude));
+        double altDiff = feetToMeters(b.altitude - a.altitude);
+        return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff + altDiff * altDiff);
+    }
+    
     public static void main(String[] args) {
         GpsService serv = new GpsService();
         Stream<GpsEvent>[] streams = serv.getEventStreams();
