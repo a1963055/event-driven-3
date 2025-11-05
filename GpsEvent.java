@@ -1,27 +1,19 @@
-/** 
- * Represents a single set of GpsCoordinates.
- */
+// GPS Event class
 public class GpsEvent {
 
-    public String name;         // The name of the GPS Tracker
-    public double latitude;     // The Latitude of the GPS event as a value from -90.0 to +90.0
-    public double longitude;    // The Longitude of the GPS event as a value from -180.0 to +180.0
-    public double altitude;     // The Altitude of the GPS event in feet
+    public String name;
+    public double latitude;
+    public double longitude;
+    public double altitude;
 
-    /** 
-     * Creates a GpsEvent
-     */
+    //creating a gps event
     public GpsEvent(String name, double latitude, double longitude, double altitude){
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
         this.altitude = altitude;
     }
-
-    /** 
-     * Returns a String object representing this GpsEvent's value.
-     * @return a string representation of the value of this object.
-     */
+    // returns a string representation of the gps event
     public String toString(){
         return this.name+" | lat:"+this.latitude+" lon:"+this.longitude+" alt:"+this.altitude;
     }

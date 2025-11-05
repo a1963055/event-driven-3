@@ -26,6 +26,11 @@ public class GpsGUI {
             simplified[i] = streams[i].map(ev -> new SimplifiedGps(ev.name, ev.latitude, ev.longitude));
         }
         
+        Stream<GpsEvent> combined = streams[0];
+        for(int i = 1; i < streams.length; i++) {
+            combined = combined.merge(streams[i], (a, b) -> a);
+        }
+        
         JFrame frame = new JFrame("GPS Tracker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1200, 800);
