@@ -175,7 +175,25 @@ public class GpsGUI {
             });
         }
         
+        JPanel distancePanel = new JPanel(new GridLayout(10, 2, 5, 5));
+        distancePanel.setBorder(BorderFactory.createTitledBorder("Distance (last 5 min, meters)"));
+        JLabel[] distanceLabels = new JLabel[10];
+        
+        for(int i = 0; i < 10; i++) {
+            distanceLabels[i] = new JLabel("0 m");
+            distancePanel.add(new JLabel("Tracker" + i + ":"));
+            distancePanel.add(distanceLabels[i]);
+            
+            final int idx = i;
+            Operational.updates(distances[i]).listen(dist -> {
+                SwingUtilities.invokeLater(() -> {
+                    distanceLabels[idx].setText(dist + " m");
+                });
+            });
+        }
+        
         mainPanel.add(trackerPanel);
+        mainPanel.add(distancePanel);
         mainPanel.add(eventDisplay);
         mainPanel.add(controlPanel);
         mainPanel.add(filteredDisplay);
