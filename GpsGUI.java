@@ -63,7 +63,9 @@ public class GpsGUI {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         
         JPanel trackerPanel = new JPanel(new GridLayout(10, 4, 5, 5));
-        trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracker Displays"));
+        trackerPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Tracker Displays"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         
         JLabel[] trackerLabels = new JLabel[10];
         JLabel[] latLabels = new JLabel[10];
@@ -90,7 +92,9 @@ public class GpsGUI {
         }
         
         JLabel eventDisplay = new JLabel("");
-        eventDisplay.setBorder(BorderFactory.createTitledBorder("Event Display"));
+        eventDisplay.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Event Display"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         Timer clearTimer = new Timer();
         
         for(int i = 0; i < streams.length; i++) {
@@ -110,7 +114,9 @@ public class GpsGUI {
         }
         
         JPanel controlPanel = new JPanel(new FlowLayout());
-        controlPanel.setBorder(BorderFactory.createTitledBorder("Range Filter Controls"));
+        controlPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Range Filter Controls"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         
         JTextField latInput = new JTextField(10);
         JTextField lonInput = new JTextField(10);
@@ -147,7 +153,9 @@ public class GpsGUI {
         controlPanel.add(lonLabel);
         
         JLabel filteredDisplay = new JLabel("");
-        filteredDisplay.setBorder(BorderFactory.createTitledBorder("Filtered Events"));
+        filteredDisplay.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Filtered Events"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         
         filtered.listen(ev -> {
             SwingUtilities.invokeLater(() -> {
@@ -180,7 +188,9 @@ public class GpsGUI {
         }
         
         JPanel distancePanel = new JPanel(new GridLayout(10, 2, 5, 5));
-        distancePanel.setBorder(BorderFactory.createTitledBorder("Distance (last 5 min, meters)"));
+        distancePanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("Distance (last 5 min, meters)"),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         JLabel[] distanceLabels = new JLabel[10];
         
         for(int i = 0; i < 10; i++) {
@@ -196,12 +206,21 @@ public class GpsGUI {
             });
         }
         
+        mainPanel.add(Box.createVerticalStrut(5));
         mainPanel.add(trackerPanel);
+        mainPanel.add(Box.createVerticalStrut(5));
         mainPanel.add(distancePanel);
+        mainPanel.add(Box.createVerticalStrut(5));
         mainPanel.add(eventDisplay);
+        mainPanel.add(Box.createVerticalStrut(5));
         mainPanel.add(controlPanel);
+        mainPanel.add(Box.createVerticalStrut(5));
         mainPanel.add(filteredDisplay);
-        frame.add(mainPanel, BorderLayout.CENTER);
+        mainPanel.add(Box.createVerticalStrut(5));
+        
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        frame.add(scrollPane, BorderLayout.CENTER);
         frame.setVisible(true);
     }
 }
