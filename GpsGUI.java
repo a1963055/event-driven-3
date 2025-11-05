@@ -3,6 +3,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.ArrayList;
+import java.util.List;
 
 class SimplifiedGps {
     String name;
@@ -13,6 +15,16 @@ class SimplifiedGps {
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
+    }
+}
+
+class TimedEvent {
+    GpsEvent event;
+    long timestamp;
+    
+    TimedEvent(GpsEvent event, long timestamp) {
+        this.event = event;
+        this.timestamp = timestamp;
     }
 }
 
@@ -143,6 +155,25 @@ public class GpsGUI {
                 filteredDisplay.setText(display);
             });
         });
+        
+        Cell<Integer>[] distances = new Cell[10];
+        for(int i = 0; i < 10; i++) {
+            Stream<TimedEvent> timedStream = streams[i].map(ev -> new TimedEvent(ev, System.currentTimeMillis()));
+            distances[i] = timedStream.accum(new ArrayList<TimedEvent>(), (evList, te) -> {
+                List<TimedEvent> newList = new ArrayList<>(evList);
+                newList.add(te);
+                long cutoff = System.currentTimeMillis() - 300000;
+                newList.removeIf(t -> t.timestamp < cutoff);
+                return newList;
+            }).map(evList -> {
+                if(evList.size() < 2) return 0;
+                double total = 0.0;
+                for(int j = 1; j < evList.size(); j++) {
+                    total += distance3D(evList.get(j-1).event, evList.get(j).event);
+                }
+                return (int)Math.ceil(total);
+            });
+        }
         
         mainPanel.add(trackerPanel);
         mainPanel.add(eventDisplay);
