@@ -95,16 +95,16 @@ public class GpsGUI {
         eventDisplay.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createTitledBorder("Event Display"),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-        Timer clearTimer = new Timer();
+        final Timer[] clearTimer = new Timer[]{new Timer()};
         
         for(int i = 0; i < streams.length; i++) {
             streams[i].listen(ev -> {
                 SwingUtilities.invokeLater(() -> {
                     String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude;
                     eventDisplay.setText(display);
-                    clearTimer.cancel();
-                    clearTimer = new Timer();
-                    clearTimer.schedule(new TimerTask() {
+                    clearTimer[0].cancel();
+                    clearTimer[0] = new Timer();
+                    clearTimer[0].schedule(new TimerTask() {
                         public void run() {
                             SwingUtilities.invokeLater(() -> eventDisplay.setText(""));
                         }
@@ -119,60 +119,77 @@ public class GpsGUI {
             BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         
         JTextField latInput = new JTextField(10);
+        latInput.setText("40");
         JTextField lonInput = new JTextField(10);
+        lonInput.setText("116");
+        JTextField rangeInput = new JTextField(10);
+        rangeInput.setText("1.0");
         JButton setButton = new JButton("Set Range");
-        JLabel latLabel = new JLabel("Lat: 0.0");
-        JLabel lonLabel = new JLabel("Lon: 0.0");
+        JLabel latLabel = new JLabel("Lat: 40.0");
+        JLabel lonLabel = new JLabel("Lon: 116.0");
+        JLabel rangeLabel = new JLabel("Range: 1.0°");
         
-        CellSink<Double> latCell = new CellSink<Double>(0.0);
-        CellSink<Double> lonCell = new CellSink<Double>(0.0);
+        CellSink<Double> latCell = new CellSink<Double>(40.0);
+        CellSink<Double> lonCell = new CellSink<Double>(116.0);
+        CellSink<Double> rangeCell = new CellSink<Double>(1.0);
         
         setButton.addActionListener(e -> {
             try {
                 double lat = Double.parseDouble(latInput.getText());
                 double lon = Double.parseDouble(lonInput.getText());
+                double range = Double.parseDouble(rangeInput.getText());
                 latCell.send(lat);
                 lonCell.send(lon);
+                rangeCell.send(range);
                 latLabel.setText("Lat: " + lat);
                 lonLabel.setText("Lon: " + lon);
+                rangeLabel.setText("Range: " + range + "°");
             } catch (Exception ex) {}
         });
         
-        Stream<GpsEvent> filtered = combined.snapshot(latCell, lonCell, (ev, lat, lon) -> {
+        Stream<GpsEvent> filtered = combined.snapshot(latCell, lonCell, rangeCell, (ev, lat, lon, range) -> {
             double latDiff = Math.abs(ev.latitude - lat);
             double lonDiff = Math.abs(ev.longitude - lon);
-            return (latDiff < 0.1 && lonDiff < 0.1) ? ev : null;
+            return (latDiff < range && lonDiff < range) ? ev : null;
         }).filter(ev -> ev != null);
         
         controlPanel.add(new JLabel("Latitude:"));
         controlPanel.add(latInput);
         controlPanel.add(new JLabel("Longitude:"));
         controlPanel.add(lonInput);
+        controlPanel.add(new JLabel("Range (°):"));
+        controlPanel.add(rangeInput);
         controlPanel.add(setButton);
         controlPanel.add(latLabel);
         controlPanel.add(lonLabel);
+        controlPanel.add(rangeLabel);
         
-        JLabel filteredDisplay = new JLabel("");
+        JLabel filteredDisplay = new JLabel("No events in range");
         filteredDisplay.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Filtered Events"),
+            BorderFactory.createTitledBorder("Filtered Events (within range)"),
             BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+        filteredDisplay.setFont(new Font(filteredDisplay.getFont().getName(), Font.BOLD, 12));
+        filteredDisplay.setForeground(Color.BLUE);
         
+        final int[] eventCount = {0};
         filtered.listen(ev -> {
             SwingUtilities.invokeLater(() -> {
-                String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude;
+                eventCount[0]++;
+                String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude + " (Count: " + eventCount[0] + ")";
                 filteredDisplay.setText(display);
+                filteredDisplay.setForeground(Color.GREEN);
             });
         });
         
         Cell<Integer>[] distances = new Cell[10];
         for(int i = 0; i < 10; i++) {
             Stream<TimedEvent> timedStream = streams[i].map(ev -> new TimedEvent(ev, System.currentTimeMillis()));
-            distances[i] = timedStream.snapshot(latCell, lonCell, (te, lat, lon) -> {
+            distances[i] = timedStream.snapshot(latCell, lonCell, rangeCell, (te, lat, lon, range) -> {
                 double latDiff = Math.abs(te.event.latitude - lat);
                 double lonDiff = Math.abs(te.event.longitude - lon);
-                return (latDiff < 0.1 && lonDiff < 0.1) ? te : null;
-            }).filter(te -> te != null).accum(new ArrayList<TimedEvent>(), (evList, te) -> {
-                List<TimedEvent> newList = new ArrayList<>(evList);
+                return (latDiff < range && lonDiff < range) ? te : null;
+            }).filter(te -> te != null).accum(new ArrayList<TimedEvent>(), (te, evList) -> {
+                ArrayList<TimedEvent> newList = new ArrayList<TimedEvent>(evList);
                 newList.add(te);
                 long cutoff = System.currentTimeMillis() - 300000;
                 newList.removeIf(t -> t.timestamp < cutoff);
@@ -199,6 +216,11 @@ public class GpsGUI {
             distancePanel.add(distanceLabels[i]);
             
             final int idx = i;
+            // Display initial value
+            SwingUtilities.invokeLater(() -> {
+                distanceLabels[idx].setText(distances[idx].sample() + " m");
+            });
+            // Listen for updates
             Operational.updates(distances[i]).listen(dist -> {
                 SwingUtilities.invokeLater(() -> {
                     distanceLabels[idx].setText(dist + " m");
