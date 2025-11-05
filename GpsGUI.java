@@ -95,6 +95,26 @@ public class GpsGUI {
         JLabel latLabel = new JLabel("Lat: 0.0");
         JLabel lonLabel = new JLabel("Lon: 0.0");
         
+        CellSink<Double> latCell = new CellSink<Double>(0.0);
+        CellSink<Double> lonCell = new CellSink<Double>(0.0);
+        
+        setButton.addActionListener(e -> {
+            try {
+                double lat = Double.parseDouble(latInput.getText());
+                double lon = Double.parseDouble(lonInput.getText());
+                latCell.send(lat);
+                lonCell.send(lon);
+                latLabel.setText("Lat: " + lat);
+                lonLabel.setText("Lon: " + lon);
+            } catch (Exception ex) {}
+        });
+        
+        Stream<GpsEvent> filtered = combined.snapshot(latCell, lonCell, (ev, lat, lon) -> {
+            double latDiff = Math.abs(ev.latitude - lat);
+            double lonDiff = Math.abs(ev.longitude - lon);
+            return (latDiff < 0.1 && lonDiff < 0.1) ? ev : null;
+        }).filter(ev -> ev != null);
+        
         controlPanel.add(new JLabel("Latitude:"));
         controlPanel.add(latInput);
         controlPanel.add(new JLabel("Longitude:"));
@@ -103,9 +123,20 @@ public class GpsGUI {
         controlPanel.add(latLabel);
         controlPanel.add(lonLabel);
         
+        JLabel filteredDisplay = new JLabel("");
+        filteredDisplay.setBorder(BorderFactory.createTitledBorder("Filtered Events"));
+        
+        filtered.listen(ev -> {
+            SwingUtilities.invokeLater(() -> {
+                String display = ev.name + "," + ev.latitude + "," + ev.longitude + "," + ev.altitude;
+                filteredDisplay.setText(display);
+            });
+        });
+        
         mainPanel.add(trackerPanel);
         mainPanel.add(eventDisplay);
         mainPanel.add(controlPanel);
+        mainPanel.add(filteredDisplay);
         frame.add(mainPanel, BorderLayout.CENTER);
         frame.setVisible(true);
     }
