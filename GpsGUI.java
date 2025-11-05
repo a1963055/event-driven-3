@@ -86,8 +86,26 @@ public class GpsGUI {
             });
         }
         
+        JPanel controlPanel = new JPanel(new FlowLayout());
+        controlPanel.setBorder(BorderFactory.createTitledBorder("Range Filter Controls"));
+        
+        JTextField latInput = new JTextField(10);
+        JTextField lonInput = new JTextField(10);
+        JButton setButton = new JButton("Set Range");
+        JLabel latLabel = new JLabel("Lat: 0.0");
+        JLabel lonLabel = new JLabel("Lon: 0.0");
+        
+        controlPanel.add(new JLabel("Latitude:"));
+        controlPanel.add(latInput);
+        controlPanel.add(new JLabel("Longitude:"));
+        controlPanel.add(lonInput);
+        controlPanel.add(setButton);
+        controlPanel.add(latLabel);
+        controlPanel.add(lonLabel);
+        
         mainPanel.add(trackerPanel);
         mainPanel.add(eventDisplay);
+        mainPanel.add(controlPanel);
         frame.add(mainPanel, BorderLayout.CENTER);
         frame.setVisible(true);
     }
